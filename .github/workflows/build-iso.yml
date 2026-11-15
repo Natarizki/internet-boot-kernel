@@ -32,17 +32,19 @@ jobs:
               profile=/workspace/work/profile
 
               if grep -q "^bootmodes=" "$profile/profiledef.sh"; then
-                sed -i "s/^bootmodes=.*/bootmodes=(\x27bios.syslinux\x27 \x27uefi.grub\x27)/" "$profile/profiledef.sh"
+                sed -i "s|^bootmodes=.*|bootmodes=(\x27bios.syslinux\x27 \x27uefi.grub\x27)|" "$profile/profiledef.sh"
               else
                 printf "\\nbootmodes=(\x27bios.syslinux\x27 \x27uefi.grub\x27)\\n" >> "$profile/profiledef.sh"
               fi
 
-              sed -i "s/^iso_name=.*/iso_name=\x27ibk\x27/" "$profile/profiledef.sh"
-              sed -i "s/^iso_label=.*/iso_label=\x27IBK_$(date +%Y%m)\x27/" "$profile/profiledef.sh"
-              sed -i "s/^iso_application=.*/iso_application=\x27Internet Boot Kernel\x27/" "$profile/profiledef.sh"
+              sed -i "s|^iso_name=.*|iso_name=\x27ibk\x27|" "$profile/profiledef.sh"
+              sed -i "s|^iso_label=.*|iso_label=\x27IBK_$(date +%Y%m)\x27|" "$profile/profiledef.sh"
+              sed -i "s|^iso_application=.*|iso_application=\x27Internet Boot Kernel\x27|" "$profile/profiledef.sh"
 
               cat /workspace/packages.x86_64 >> "$profile/packages.x86_64"
               install -D -m 0755 /workspace/airootfs/usr/local/bin/ibk "$profile/airootfs/usr/local/bin/ibk"
+              install -d "$profile/airootfs/etc/systemd/system/multi-user.target.wants"
+              ln -sf /usr/lib/systemd/system/NetworkManager.service "$profile/airootfs/etc/systemd/system/multi-user.target.wants/NetworkManager.service"
 
               mkarchiso -v -w /workspace/work/build -o /workspace/out "$profile"
             '
