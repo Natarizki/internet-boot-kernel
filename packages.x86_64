@@ -2,7 +2,7 @@
 networkmanager
 iwd
 wpa_supplicant
- wireless-regdb
+wireless-regdb
 # HTTPS download and integrity utilities
 curl
 ca-certificates
