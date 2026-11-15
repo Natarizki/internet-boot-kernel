@@ -1,0 +1,65 @@
+name: Build IBK ISO
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build bootable ISO with Archiso
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out work
+          docker run --privileged --rm \
+            -v "${GITHUB_WORKSPACE}:/workspace" \
+            -w /workspace \
+            archlinux:latest bash -euo pipefail -c '
+              pacman -Syu --noconfirm
+              pacman -S --noconfirm --needed archiso grub
+
+              cp -a /usr/share/archiso/configs/baseline /workspace/work/profile
+              profile=/workspace/work/profile
+
+              if grep -q "^bootmodes=" "$profile/profiledef.sh"; then
+                sed -i "s/^bootmodes=.*/bootmodes=(\x27bios.syslinux\x27 \x27uefi.grub\x27)/" "$profile/profiledef.sh"
+              else
+                printf "\\nbootmodes=(\x27bios.syslinux\x27 \x27uefi.grub\x27)\\n" >> "$profile/profiledef.sh"
+              fi
+
+              sed -i "s/^iso_name=.*/iso_name=\x27ibk\x27/" "$profile/profiledef.sh"
+              sed -i "s/^iso_label=.*/iso_label=\x27IBK_$(date +%Y%m)\x27/" "$profile/profiledef.sh"
+              sed -i "s/^iso_application=.*/iso_application=\x27Internet Boot Kernel\x27/" "$profile/profiledef.sh"
+
+              cat /workspace/packages.x86_64 >> "$profile/packages.x86_64"
+              install -D -m 0755 /workspace/airootfs/usr/local/bin/ibk "$profile/airootfs/usr/local/bin/ibk"
+
+              mkarchiso -v -w /workspace/work/build -o /workspace/out "$profile"
+            '
+
+      - name: Generate SHA-256 checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd out
+          sha256sum *.iso > SHA256SUMS
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: internet-boot-kernel-iso
+          path: |
+            out/*.iso
+            out/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
