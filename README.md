@@ -2,28 +2,34 @@
 
 IBK is a Linux-based internet boot environment intended to start on a PC, establish network connectivity (including Wi-Fi where supported), and retrieve a Linux distribution installer over HTTPS.
 
-## Project status
+## Current prototype
 
-Early development. The repository is being initialized; no bootable ISO is available yet.
+The first prototype is being built from the Archiso baseline. It uses the standard Arch Linux kernel and initramfs; it is not a custom Linux kernel or a completed distribution installer.
 
-## Initial target
+The initial live environment is intended to provide:
+- Legacy BIOS and UEFI boot through GRUB
+- x86_64 Linux kernel and initramfs
+- NetworkManager-based Wi-Fi connection
+- HTTPS downloads with mandatory SHA-256 verification in the `ibk fetch` command
 
-- x86_64 Linux kernel
-- GRUB boot menu for legacy BIOS and UEFI
-- Minimal initramfs-based userspace
-- Network bring-up and verified HTTPS downloads
-- Fedora as the first planned installer target
+The x86_64 Archiso GRUB profile is also intended to generate an IA32 UEFI boot entry for compatible x86_64 systems. This needs real hardware testing before being considered supported.
 
-32-bit UEFI support is a compatibility goal and will be validated separately. A 32-bit UEFI bootloader does not by itself guarantee that a 64-bit kernel can boot on that firmware.
+## Planned next steps
 
-## Security and integrity
-
-Downloaded installer metadata and artifacts must be checked against trusted checksums or signatures before use. The initial prototype must not silently treat an unverified download as valid.
+1. Produce and validate the first bootable ISO.
+2. Test BIOS, UEFI x64, and IA32 UEFI boot paths.
+3. Verify Wi-Fi operation on target hardware.
+4. Add a maintained distribution catalog, beginning with Fedora.
+5. Verify installer metadata and images using trusted checksums or signatures.
 
 ## Build
 
-The GitHub Actions build workflow and implementation scripts will be added as the prototype is developed. Until then, this repository does not produce an ISO.
+GitHub Actions builds the ISO from the profile in this repository and uploads it as the `internet-boot-kernel-iso` workflow artifact. A successful workflow run is required before an ISO can be considered available.
 
-## License
+## Security
 
-License: to be decided.
+The `ibk fetch URL SHA256 FILE` command accepts HTTPS URLs only and rejects the download if the supplied SHA-256 digest does not match. The digest must come from a trusted release source.
+
+## Status
+
+Early development. Bootability, Wi-Fi compatibility, and installer handoff are not yet validated on physical hardware.
