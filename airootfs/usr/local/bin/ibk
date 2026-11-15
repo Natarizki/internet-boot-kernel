@@ -24,6 +24,8 @@ wifi_menu() {
 
   nmcli radio wifi on
   echo "Scanning for Wi-Fi networks..."
+  nmcli device wifi rescan || true
+  sleep 3
   nmcli --fields IN-USE,SSID,SECURITY,SIGNAL device wifi list
 
   echo
@@ -60,6 +62,7 @@ verified_fetch() {
     return 2
   fi
 
+  mkdir -p "$(dirname "$destination")"
   temporary="$(mktemp "${destination}.part.XXXXXX")"
   trap 'rm -f "$temporary"' RETURN
 
