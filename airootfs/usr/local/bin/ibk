@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+VERSION="0.1.0"
+
+usage() {
+  cat <<'EOF'
+Internet Boot Kernel (IBK) 0.1.0
+
+Usage:
+  ibk                  Open the interactive menu
+  ibk wifi              Show nearby Wi-Fi networks and connect
+  ibk fetch URL SHA256 FILE
+                       Download a file and verify its SHA-256 digest
+  ibk version           Show version
+EOF
+}
+
+wifi_menu() {
+  command -v nmcli >/dev/null 2>&1 || {
+    echo "NetworkManager (nmcli) is unavailable." >&2
+    return 1
+  }
+
+  nmcli radio wifi on
+  echo "Scanning for Wi-Fi networks..."
+  nmcli --fields IN-USE,SSID,SECURITY,SIGNAL device wifi list
+
+  echo
+  read -r -p "Wi-Fi SSID: " ssid
+  [[ -n "$ssid" ]] || { echo "SSID cannot be empty." >&2; return 1; }
+
+  read -r -s -p "Wi-Fi password (leave blank for open network): " password
+  echo
+
+  if [[ -n "$password" ]]; then
+    nmcli device wifi connect "$ssid" password "$password"
+  else
+    nmcli device wifi connect "$ssid"
+  fi
+  unset password
+
+  echo
+  nmcli --terse --fields DEVICE,STATE,CONNECTION device status
+}
+
+verified_fetch() {
+  if [[ "$#" -ne 3 ]]; then
+    usage
+    return 2
+  fi
+
+  local url="$1"
+  local expected="$2"
+  local destination="$3"
+  local temporary
+
+  if [[ ! "$expected" =~ ^[[:xdigit:]]{64}$ ]]; then
+    echo "Expected SHA-256 must be exactly 64 hexadecimal characters." >&2
+    return 2
+  fi
+
+  temporary="$(mktemp "${destination}.part.XXXXXX")"
+  trap 'rm -f "$temporary"' RETURN
+
+  curl --fail --location --proto '=https' --tlsv1.2 \
+    --output "$temporary" "$url"
+
+  printf '%s  %s\n' "$expected" "$temporary" | sha256sum --check --status || {
+    echo "SHA-256 verification failed; downloaded file was rejected." >&2
+    return 1
+  }
+
+  install -D -m 0644 "$temporary" "$destination"
+  echo "Verified download saved to: $destination"
+}
+
+interactive_menu() {
+  while true; do
+    echo
+    echo "=== Internet Boot Kernel ==="
+    echo "1) Connect to Wi-Fi"
+    echo "2) Return to shell"
+    echo "3) Show network status"
+    echo "4) Show version"
+    read -r -p "Select: " choice
+
+    case "$choice" in
+      1) wifi_menu ;;
+      2) return 0 ;;
+      3) nmcli device status ;;
+      4) echo "IBK $VERSION" ;;
+      *) echo "Invalid selection." ;;
+    esac
+  done
+}
+
+case "${1:-menu}" in
+  menu) interactive_menu ;;
+  wifi) wifi_menu ;;
+  fetch) shift; verified_fetch "$@" ;;
+  version) echo "IBK $VERSION" ;;
+  -h|--help|help) usage ;;
+  *) usage; exit 2 ;;
+esac
