@@ -1,0 +1,10 @@
+# Network management and Wi-Fi tools
+networkmanager
+iwd
+wpa_supplicant
+ wireless-regdb
+# HTTPS download and integrity utilities
+curl
+ca-certificates
+coreutils
+dialog
