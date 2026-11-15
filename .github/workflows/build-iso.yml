@@ -31,15 +31,12 @@ jobs:
               cp -a /usr/share/archiso/configs/baseline /workspace/work/profile
               profile=/workspace/work/profile
 
-              if grep -q "^bootmodes=" "$profile/profiledef.sh"; then
-                sed -i "s|^bootmodes=.*|bootmodes=(\"bios.syslinux\" \"uefi.grub\")|" "$profile/profiledef.sh"
-              else
-                printf "\\nbootmodes=(\"bios.syslinux\" \"uefi.grub\")\\n" >> "$profile/profiledef.sh"
-              fi
+              # The Archiso baseline already enables BIOS Syslinux and UEFI GRUB.
+              # Keep its multiline bootmodes array intact.
 
-              sed -i "s|^iso_name=.*|iso_name=\"ibk\"|" "$profile/profiledef.sh"
-              sed -i "s|^iso_label=.*|iso_label=\"IBK_$(date +%Y%m)\"|" "$profile/profiledef.sh"
-              sed -i "s|^iso_application=.*|iso_application=\"Internet Boot Kernel\"|" "$profile/profiledef.sh"
+              sed -i "s|^iso_name=.*|iso_name=\\\"ibk\\\"|" "$profile/profiledef.sh"
+              sed -i "s|^iso_label=.*|iso_label=\\\"IBK_$(date +%Y%m)\\\"|" "$profile/profiledef.sh"
+              sed -i "s|^iso_application=.*|iso_application=\\\"Internet Boot Kernel\\\"|" "$profile/profiledef.sh"
 
               cat /workspace/packages.x86_64 >> "$profile/packages.x86_64"
               install -D -m 0755 /workspace/airootfs/usr/local/bin/ibk "$profile/airootfs/usr/local/bin/ibk"
